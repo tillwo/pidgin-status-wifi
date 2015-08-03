@@ -64,13 +64,18 @@ fi
 
 # Okay, that went good so far. We now have all prerequisites. Let's get the list
 # of all nearby WiFi access points from NetworkManager in order to determine
-# our location.
-
-BSSIDs=(`/usr/bin/nmcli dev wifi | tail -n +2 | sed -r "s/^'.+' +//" | cut -c1-17`)
-
+# our location. Handle different versions of NetworkManager output.
 # TODO: insert sanity a check here
-# TODO: some newer NetworkManager version has a different output format. We
-#  must auto-detect and handle this.
+version=$(nmcli -v | cut -d " " -f 4) #e.g. 0.9.10.0
+v_major=$(echo $version | cut -d "." -f 1) #e.g. 0
+v_minor=$(echo $version | cut -d "." -f 2) #e.g. 9
+if [[ "$v_major" == 0 && "$v_minor" < 9 ]]; then
+  # >= 0.9
+  BSSIDs=(`/usr/bin/nmcli dev wifi | tail -n +2 | sed -r "s/^'.+' +//" | cut -c1-17`)
+else
+  # < 0.9
+  BSSIDs=(`/usr/bin/nmcli -f BSSID dev wifi`)
+fi
 
 # Get the current status message from Pidgin to decide if we have to change it
 # eventually.
