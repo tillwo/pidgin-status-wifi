@@ -69,11 +69,12 @@ fi
 version=$(nmcli -v | cut -d " " -f 4) #e.g. 0.9.10.0
 v_major=$(echo $version | cut -d "." -f 1) #e.g. 0
 v_minor=$(echo $version | cut -d "." -f 2) #e.g. 9
-if [[ "$v_major" == 0 && "$v_minor" < 9 ]]; then
-  # >= 0.9
+v_minor2=$(echo $version | cut -d "." -f 3) #e.g. 10
+if [[ "$v_major" == 0 && "$v_minor" > 8 && "$v_minor2" > 9 ]]; then
+  # >= 0.9.10
   BSSIDs=(`/usr/bin/nmcli dev wifi | tail -n +2 | sed -r "s/^'.+' +//" | cut -c1-17`)
 else
-  # < 0.9
+  # < 0.9.10
   BSSIDs=(`/usr/bin/nmcli -f BSSID dev wifi`)
 fi
 
