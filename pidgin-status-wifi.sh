@@ -32,13 +32,26 @@ function urlencode() {
 
 compatiblePrograms=( gnome-panel gnome-session pidgin )
 
-# Attempt to get the PID of one of the programs:
+# Attempt to get the PID of the programs:
+PIDS=()
 for index in ${compatiblePrograms[@]}; do
-	PID=$(pidof -s ${index})
-	if [[ "${PID}" != "" ]]; then
-		break
-	fi
+        #pidof can return many values
+        PID=( $(pidof ${index}) )  #array
+        PIDS+=("${PID[@]}")        #concat
 done
+
+# Attempt to get non-zombie PID (workaround for bug: https://developer.pidgin.im/ticket/15617 )
+for PID in ${PIDS[@]}; do
+        if [[ "${PID}" != "" ]]; then
+                #check whether PID is zombie process
+                is_zombie=$(cat /proc/${PID}/status | grep State | grep "zombie")
+                if [ -z "$is_zombie" ]; then
+                        #found non-zombie process
+                        break
+                fi
+        fi
+done
+
 if [[ "${PID}" == "" ]]; then
 	echo "Could not detect active login session."
 	exit 1
