@@ -219,8 +219,7 @@ if [[ ( "$OLDSTATUS" != "$NEWSTATUS" ) || ( "$old_statusword" != "$new_statuswor
 		-i /usr/share/icons/hicolor/32x32/apps/pidgin.png \
 		-t 3 \
 		"Pidgin status was updated" \
-		"New status is: »$NEWSTATUS« ($new_statusword)" \
-		"Old status was: »$OLDSTATUS« ($old_statusword)"
+		"New status is: »$NEWSTATUS« ($new_statusword)\nOld status was: »$OLDSTATUS« ($old_statusword)"
 
 	# Play a fancy sound along with the popup to distract the user even further ;-)
 	/usr/bin/play /usr/share/sounds/freedesktop/stereo/window-attention.oga &> /dev/null &
