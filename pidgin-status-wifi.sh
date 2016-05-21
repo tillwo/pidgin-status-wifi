@@ -121,7 +121,9 @@ test_macs () {
 
 	local matches=0
 	for g in ${given[*]}; do
+		g="${g,,}"                     #convert to lowercase
 		for t in ${totest[*]}; do
+			t="${t,,}"             #convert to lowercase
 			[[ "$g" =~ $t ]] && matches=$(($matches + 1))
 		done
 	done
