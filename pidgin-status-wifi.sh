@@ -32,13 +32,26 @@ function urlencode() {
 
 compatiblePrograms=( gnome-panel gnome-session pidgin )
 
-# Attempt to get the PID of one of the programs:
+# Attempt to get the PID of the programs:
+PIDS=()
 for index in ${compatiblePrograms[@]}; do
-	PID=$(pidof -s ${index})
-	if [[ "${PID}" != "" ]]; then
-		break
-	fi
+        #pidof can return many values
+        PID=( $(pidof ${index}) )  #array
+        PIDS+=("${PID[@]}")        #concat
 done
+
+# Attempt to get non-zombie PID (workaround for bug: https://developer.pidgin.im/ticket/15617 )
+for PID in ${PIDS[@]}; do
+        if [[ "${PID}" != "" ]]; then
+                #check whether PID is zombie process
+                is_zombie=$(cat /proc/${PID}/status | grep State | grep "zombie")
+                if [ -z "$is_zombie" ]; then
+                        #found non-zombie process
+                        break
+                fi
+        fi
+done
+
 if [[ "${PID}" == "" ]]; then
 	echo "Could not detect active login session."
 	exit 1
@@ -64,13 +77,19 @@ fi
 
 # Okay, that went good so far. We now have all prerequisites. Let's get the list
 # of all nearby WiFi access points from NetworkManager in order to determine
-# our location.
-
-BSSIDs=(`/usr/bin/nmcli dev wifi | tail -n +2 | sed -r "s/^'.+' +//" | cut -c1-17`)
-
+# our location. Handle different versions of NetworkManager output.
 # TODO: insert sanity a check here
-# TODO: some newer NetworkManager version has a different output format. We
-#  must auto-detect and handle this.
+version=$(nmcli -v | cut -d " " -f 4) #e.g. 0.9.10.0
+v_major=$(echo $version | cut -d "." -f 1) #e.g. 0
+v_minor=$(echo $version | cut -d "." -f 2) #e.g. 9
+v_minor2=$(echo $version | cut -d "." -f 3) #e.g. 10
+if [[ "$v_major" == 0 && "$v_minor" > 8 && "$v_minor2" > 9 ]]; then
+  # >= 0.9.10
+  BSSIDs=(`/usr/bin/nmcli dev wifi | tail -n +2 | sed -r "s/^'.+' +//" | cut -c1-17`)
+else
+  # < 0.9.10
+  BSSIDs=(`/usr/bin/nmcli -f BSSID dev wifi`)
+fi
 
 # Get the current status message from Pidgin to decide if we have to change it
 # eventually.
@@ -102,7 +121,9 @@ test_macs () {
 
 	local matches=0
 	for g in ${given[*]}; do
+		g="${g,,}"                     #convert to lowercase
 		for t in ${totest[*]}; do
+			t="${t,,}"             #convert to lowercase
 			[[ "$g" =~ $t ]] && matches=$(($matches + 1))
 		done
 	done
@@ -198,8 +219,7 @@ if [[ ( "$OLDSTATUS" != "$NEWSTATUS" ) || ( "$old_statusword" != "$new_statuswor
 		-i /usr/share/icons/hicolor/32x32/apps/pidgin.png \
 		-t 3 \
 		"Pidgin status was updated" \
-		"New status is: »$NEWSTATUS« ($new_statusword)" \
-		"Old status was: »$OLDSTATUS« ($old_statusword)"
+		"New status is: »$NEWSTATUS« ($new_statusword)\nOld status was: »$OLDSTATUS« ($old_statusword)"
 
 	# Play a fancy sound along with the popup to distract the user even further ;-)
 	/usr/bin/play /usr/share/sounds/freedesktop/stereo/window-attention.oga &> /dev/null &
